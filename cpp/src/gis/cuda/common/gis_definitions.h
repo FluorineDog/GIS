@@ -179,7 +179,7 @@ class GeometryVector {
   // TODO(dog): Use Arrow Format internally
   // Currently, GpuVector contains host memory only
   // next goal should make it switchable between host and device memory.
-  std::shared_ptr<arrow::Array> arrow_tags_;
+  std::shared_ptr<arrow::NumericArray<WkbTag>> arrow_tags_;
   // Not including tags_, for faster access of WkbTags
   GpuVector<uint32_t> metas_;
   GpuVector<double> values_;

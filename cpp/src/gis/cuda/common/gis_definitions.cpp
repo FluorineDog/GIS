@@ -35,12 +35,13 @@ GeometryVector::GpuContextHolder GeometryVector::CreateReadGpuContext() const {
   GeometryVector::GpuContextHolder holder(new GpuContext);
   static_assert(std::is_same<GpuVector<int>, std::vector<int>>::value,
                 "here use vector now");
-  auto size = tags_.size();  // size_ of elements
+  auto size = arrow_tags_->length();  // size_ of elements
   assert(size + 1 == meta_offsets_.size());
   assert(size + 1 == value_offsets_.size());
   assert(meta_offsets_[size] == metas_.size());
   assert(value_offsets_[size] == values_.size());
-  holder->tags = GpuAllocAndCopy(tags_.data(), tags_.size());
+//  holder->tags = GpuAllocAndCopy(tags_.data(), tags_.size());
+  holder->tags = arrow_tags_->raw_values();
   holder->metas = GpuAllocAndCopy(metas_.data(), metas_.size());
   holder->values = GpuAllocAndCopy(values_.data(), values_.size());
   holder->meta_offsets = GpuAllocAndCopy(meta_offsets_.data(), meta_offsets_.size());

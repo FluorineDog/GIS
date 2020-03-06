@@ -25,6 +25,7 @@ namespace gis {
 namespace cuda {
 
 struct WkbTag {
+  using c_type = struct WkbTag;
   WkbTag() = default;
   constexpr DEVICE_RUNNABLE WkbTag(WkbCategory category, WkbSpaceType group)
       : data((uint32_t)category + (uint32_t)group * kWkbSpaceTypeEncodeBase) {}
