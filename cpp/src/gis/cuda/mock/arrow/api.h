@@ -21,6 +21,7 @@
 namespace arrow {
 class Array;
 class Table;
+class Buffer;
 }  // namespace arrow
 
 #ifndef __CUDACC__

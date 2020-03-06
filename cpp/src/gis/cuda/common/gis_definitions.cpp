@@ -113,7 +113,8 @@ void GeometryVector::OutputEvolveWith(GpuContext& gpu_ctx) {
   auto size = gpu_ctx.size;
 
   // copy tags to gpu_ctx
-  GpuMemcpy(tags_.data(), gpu_ctx.tags, size);
+//  GpuMemcpy(tags_.data(), gpu_ctx.tags, size);
+  assert(arrow_tags_-> == gpu_ctx.tags);
 
   // exclusive scan offsets[0, n+1) in gpu_ctx, and copy to cpu
   // return offsets[n] as total size
@@ -139,19 +140,25 @@ void GeometryVector::OutputEvolveWith(GpuContext& gpu_ctx) {
 void GeometryVector::OutputFinalizeWith(const GpuContext& gpu_ctx) {
   assert(gpu_ctx.data_state == DataState::PrefixSumOffset_FullData);
   assert(data_state_ == DataState::PrefixSumOffset_EmptyData);
-  assert(tags_.size() == gpu_ctx.size);
+  assert(arrow_tags_->length() == gpu_ctx.size);
   GpuMemcpy(metas_.data(), gpu_ctx.metas, metas_.size());
   GpuMemcpy(values_.data(), gpu_ctx.values, values_.size());
   data_state_ = DataState::PrefixSumOffset_FullData;
 }
 
 void GeometryVector::clear() {
-  tags_.clear();
+  arrow_tags_ = nullptr;
   metas_.clear();
   values_.clear();
   meta_offsets_.clear();
   value_offsets_.clear();
   data_state_ = DataState::Invalid;
+}
+
+int GeometryVector::size() const {
+  auto tmp = arrow_tags_->length();
+  assert(tmp <= std::numeric_limits<int>::max());
+  return static_cast<int>(tmp);
 }
 
 }  // namespace cuda

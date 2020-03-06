@@ -35,14 +35,6 @@ using GpuVector = std::vector<T>;  // TODO: use gpu vector, now just placeholder
 namespace zilliz {
 namespace gis {
 namespace cuda {
-// namespace arrow {
-// class Array {
-// public:
-//  int length() { return 0; }
-//  int null_count() { return 0; }
-//};
-//}  // namespace arrow
-
 //// Not used yet, comment later
 // struct GeoWorkspace {
 //    static constexpr int max_threads = 256 * 128;
@@ -181,17 +173,13 @@ class GeometryVector {
 
   void clear();
 
-  int size() const {
-    auto tmp = tags_.size();
-    assert(tmp <= std::numeric_limits<int>::max());
-    return static_cast<int>(tmp);
-  }
+  int size() const;
 
  private:
   // TODO(dog): Use Arrow Format internally
   // Currently, GpuVector contains host memory only
   // next goal should make it switchable between host and device memory.
-  GpuVector<WkbTag> tags_;
+  std::shared_ptr<arrow::Array> arrow_tags_;
   // Not including tags_, for faster access of WkbTags
   GpuVector<uint32_t> metas_;
   GpuVector<double> values_;
