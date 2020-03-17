@@ -18,17 +18,20 @@
 #include "gis/cuda/common/gpu_memory.h"
 #include "gis/cuda/functor/st_length.h"
 
-namespace zilliz {
+namespace arctern {
 namespace gis {
 namespace cuda {
 
 namespace {
 using Iter = GpuContext::Iter;
-using ConstIter = GpuContext::ConstIter;
+using ConstIter = ConstGpuContext::ConstIter;
 
 inline DEVICE_RUNNABLE double LineStringLength(ConstIter& iter) {
-  auto count = *iter.metas++;
+  int count = static_cast<int>(*iter.metas++);
   double sum_length = 0;
+  if (count == 0) {
+    return 0;
+  }
   for (int point_index = 0; point_index < count - 1; ++point_index) {
     auto lv = iter.values + 2 * point_index;
     auto rv = lv + 2;
@@ -41,7 +44,7 @@ inline DEVICE_RUNNABLE double LineStringLength(ConstIter& iter) {
   return sum_length;
 }
 
-__global__ void ST_LengthKernel(const GpuContext ctx, double* results) {
+__global__ void ST_LengthKernel(ConstGpuContext ctx, double* results) {
   auto index = threadIdx.x + blockIdx.x * blockDim.x;
   if (index < ctx.size) {
     auto tag = ctx.get_tag(index);
@@ -77,4 +80,4 @@ void ST_Length(const GeometryVector& vec, double* host_results) {
 
 }  // namespace cuda
 }  // namespace gis
-}  // namespace zilliz
+}  // namespace arctern

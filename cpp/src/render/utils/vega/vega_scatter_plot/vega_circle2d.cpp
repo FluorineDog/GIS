@@ -15,26 +15,24 @@
  */
 #include "render/utils/vega/vega_scatter_plot/vega_circle2d.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 VegaCircle2d::VegaCircle2d(const std::string& json) { Parse(json); }
-
-std::string VegaCircle2d::Build() {
-  // TODO: add Build() api to build a vega json string.
-  return "";
-}
 
 void VegaCircle2d::Parse(const std::string& json) {
   rapidjson::Document document;
   document.Parse(json.c_str());
 
   if (document.Parse(json.c_str()).HasParseError()) {
+    // TODO: add log here
     printf("json format error\n");
+    is_valid_ = false;
     return;
   }
 
   if (!JsonLabelCheck(document, "width") || !JsonLabelCheck(document, "height") ||
+      !JsonNullCheck(document["width"]) || !JsonNullCheck(document["height"]) ||
       !JsonTypeCheck(document["width"], rapidjson::Type::kNumberType) ||
       !JsonTypeCheck(document["height"], rapidjson::Type::kNumberType)) {
     return;
@@ -68,4 +66,4 @@ void VegaCircle2d::Parse(const std::string& json) {
 }
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

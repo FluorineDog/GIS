@@ -17,13 +17,11 @@
 #include <memory>
 
 #include "render/2d/general_2d.h"
-#include "render/utils/my_zlib_compress.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "render/utils/my_zlib_compress.h"
 
-#include "stb/stb_image_write.h"
-
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 General2D::~General2D() { free(buffer_); }
@@ -69,24 +67,23 @@ uint8_t* General2D::Output() {
   // export image to memory
   ExportImage();
 
-  auto write_image = true;
-  if (write_image) {
-    // TODO: add log here
-    std::cout << "******************" << output_image_size_ << "******************"
-              << std::endl;
-    FILE* f = fopen("/tmp/offscreen.png", "wb");
-    if (!f) {
-      std::cout << "export png error";
-    } else {
-      fwrite(output_image_, 1, output_image_size_, f);
-      fclose(f);
-    }
+#ifdef DEBUG_RENDER
+  // TODO: add log here
+  std::cout << "******************" << output_image_size_ << "******************"
+            << std::endl;
+  FILE* f = fopen("/tmp/offscreen.png", "wb");
+  if (!f) {
+    std::cout << "export png error";
+  } else {
+    fwrite(output_image_, 1, output_image_size_, f);
+    fclose(f);
   }
+#endif
 
   return output_image_;
 }
 
-void General2D::InitBuffer(zilliz::render::WindowParams& window_params) {
+void General2D::InitBuffer(arctern::render::WindowParams& window_params) {
   buffer_ =
       (unsigned char*)calloc(size_t(window_params.width() * window_params.height()), 4);
 }
@@ -102,4 +99,4 @@ void General2D::ExportImage() {
 }
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

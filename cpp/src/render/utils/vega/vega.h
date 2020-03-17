@@ -20,7 +20,7 @@
 #include "rapidjson/document.h"
 #include "render/window/window_params.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 /***
@@ -28,11 +28,13 @@ namespace render {
  */
 class Vega {
  public:
-  //    std::string ToString();
+  // std::string ToString();
 
-  virtual std::string Build() = 0;
+  // virtual std::string Build() = 0;
 
   const WindowParams& window_params() const { return window_params_; }
+
+  const bool& is_valid() const { return is_valid_; }
 
  protected:
   // vega json to vega struct
@@ -48,7 +50,8 @@ class Vega {
 
  protected:
   WindowParams window_params_;
+  bool is_valid_ = true;
 };
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

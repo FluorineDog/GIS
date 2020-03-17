@@ -26,7 +26,7 @@
 #include "render/2d/choropleth_map/choropleth_map.h"
 #include "render/utils/color/color_gradient.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 template class ChoroplethMap<int8_t>;
@@ -48,10 +48,6 @@ template class ChoroplethMap<uint64_t>;
 template class ChoroplethMap<float>;
 
 template class ChoroplethMap<double>;
-
-template <typename T>
-ChoroplethMap<T>::ChoroplethMap()
-    : choropleth_wkt_(), count_(nullptr), num_buildings_(0) {}
 
 template <typename T>
 ChoroplethMap<T>::ChoroplethMap(std::vector<std::string> choropleth_wkt, T* count,
@@ -167,4 +163,4 @@ uint8_t* ChoroplethMap<T>::Render() {
 }
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

@@ -16,9 +16,42 @@
 
 #include "gis/gdal/geometry_visitor.h"
 
-namespace zilliz {
+namespace arctern {
 namespace gis {
 namespace gdal {
+
+void HasCurveVisitor::visit(const OGRCircularString* geo) {
+  if (geo->IsEmpty()) {
+    return;
+  }
+  has_curve_ = true;
+}
+
+void HasCurveVisitor::visit(const OGRCompoundCurve* geo) {
+  if (geo->IsEmpty()) {
+    return;
+  }
+  has_curve_ = true;
+}
+void HasCurveVisitor::visit(const OGRCurvePolygon* geo) {
+  if (geo->IsEmpty()) {
+    return;
+  }
+  has_curve_ = true;
+}
+void HasCurveVisitor::visit(const OGRMultiCurve* geo) {
+  if (geo->IsEmpty()) {
+    return;
+  }
+  has_curve_ = true;
+}
+
+void HasCircularVisitor::visit(const OGRCircularString* geo) {
+  if (geo->IsEmpty()) {
+    return;
+  }
+  has_circular_ = true;
+}
 
 void NPointsVisitor::visit(const OGRPoint* geo) {
   if (geo->IsEmpty()) return;
@@ -94,4 +127,4 @@ void PrecisionReduceVisitor::visit(OGRPoint* geo) {
 
 }  // namespace gdal
 }  // namespace gis
-}  // namespace zilliz
+}  // namespace arctern

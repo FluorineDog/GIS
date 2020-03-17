@@ -19,7 +19,7 @@
 
 #include "render/utils/vega/vega_scatter_plot/vega_scatter_plot.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 class VegaCircle2d : public VegaScatterPlot {
@@ -28,7 +28,8 @@ class VegaCircle2d : public VegaScatterPlot {
 
   explicit VegaCircle2d(const std::string& json);
 
-  std::string Build() final;
+  // TODO: add Build() api to build a vega json string.
+  // std::string Build() final;
 
   const CircleParams circle_params() const { return circle_params_; }
 
@@ -41,4 +42,4 @@ class VegaCircle2d : public VegaScatterPlot {
 };
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

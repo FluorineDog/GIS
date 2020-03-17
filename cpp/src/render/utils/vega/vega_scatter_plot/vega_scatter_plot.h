@@ -20,7 +20,7 @@
 #include "render/utils/color/color.h"
 #include "render/utils/vega/vega.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 struct CircleParams {
@@ -30,7 +30,8 @@ struct CircleParams {
 
 class VegaScatterPlot : public Vega {
  public:
-  virtual std::string Build() = 0;
+  // TODO: add Build() api to build a vega json string.
+  // virtual std::string Build() = 0;
 
  protected:
   // vega json to vega struct
@@ -38,4 +39,4 @@ class VegaScatterPlot : public Vega {
 };
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern

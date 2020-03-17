@@ -25,14 +25,14 @@
 #include "gis/cuda/conversion/conversions.h"
 #include "gis/cuda/wkb/wkb_transforms.h"
 
-namespace zilliz {
+namespace arctern {
 namespace gis {
 namespace cuda {
 
-GeometryVector::GpuContextHolder GeometryVector::CreateReadGpuContext() const {
+GeometryVector::ConstGpuContextHolder GeometryVector::CreateReadGpuContext() const {
   assert(data_state_ == DataState::PrefixSumOffset_FullData);
 
-  GeometryVector::GpuContextHolder holder(new GpuContext);
+  GeometryVector::ConstGpuContextHolder holder(new ConstGpuContext);
   static_assert(std::is_same<GpuVector<int>, std::vector<int>>::value,
                 "here use vector now");
   auto size = arrow_tags_->length();  // size_ of elements
@@ -51,7 +51,7 @@ GeometryVector::GpuContextHolder GeometryVector::CreateReadGpuContext() const {
   return holder;
 }
 
-void GeometryVector::GpuContextDeleter(GpuContext* ptr) {
+void GeometryVector::GpuContextDeleter(ConstGpuContext* ptr) {
   if (!ptr) {
     return;
   }
@@ -62,6 +62,11 @@ void GeometryVector::GpuContextDeleter(GpuContext* ptr) {
   GpuFree(ptr->value_offsets);
   ptr->size = 0;
   ptr->data_state = DataState::Invalid;
+}
+void GeometryVector::GpuContextDeleter(GpuContext* ptr) {
+  static_assert(sizeof(ConstGpuContext) == sizeof(GpuContext),
+                "abnormal GpuContext size");
+  GpuContextDeleter(reinterpret_cast<ConstGpuContext*>(ptr));
 }
 
 // GeoWorkspaceHolder
@@ -138,7 +143,7 @@ void GeometryVector::OutputEvolveWith(GpuContext& gpu_ctx) {
   gpu_ctx.data_state = DataState::PrefixSumOffset_EmptyData;
 }
 
-void GeometryVector::OutputFinalizeWith(const GpuContext& gpu_ctx) {
+void GeometryVector::OutputFinalizeWith(GpuContext& gpu_ctx) {
   assert(gpu_ctx.data_state == DataState::PrefixSumOffset_FullData);
   assert(data_state_ == DataState::PrefixSumOffset_EmptyData);
   assert(arrow_tags_->length() == gpu_ctx.size);
@@ -164,4 +169,4 @@ int GeometryVector::size() const {
 
 }  // namespace cuda
 }  // namespace gis
-}  // namespace zilliz
+}  // namespace arctern

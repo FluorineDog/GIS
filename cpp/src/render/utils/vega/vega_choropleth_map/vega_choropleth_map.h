@@ -21,7 +21,7 @@
 #include "render/utils/color/color.h"
 #include "render/utils/vega/vega.h"
 
-namespace zilliz {
+namespace arctern {
 namespace render {
 
 class VegaChoroplethMap : public Vega {
@@ -38,7 +38,8 @@ class VegaChoroplethMap : public Vega {
 
   explicit VegaChoroplethMap(const std::string& json);
 
-  std::string Build() final;
+  // TODO: add Build() api to build a vega json string.
+  // std::string Build() final;
 
   const BoundingBox& bounding_box() const { return bounding_box_; }
 
@@ -60,4 +61,4 @@ class VegaChoroplethMap : public Vega {
 };
 
 }  // namespace render
-}  // namespace zilliz
+}  // namespace arctern
