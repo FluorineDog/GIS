@@ -104,9 +104,8 @@ case class NaiveEnvelopAggr(geom: Expression)
   }
 
   protected def updateExpressionDef: Seq[Expression] = {
-    val input_envelope = GeometryEnvelope(geom)
-    val input_minX = GetElementByIndex(0, DoubleType, input_envelope)
-
+    //    val input_envelope = GeometryEnvelope(geom)
+    //    val input_minX = GetElementByIndex(0, DoubleType, input_envelope)
     //    val input_minY = EnvelopeGet("MinY", input_envelope)
     //    val input_maxX = EnvelopeGet("MaxX", input_envelope)
     //    val input_maxY = EnvelopeGet("MaxY", input_envelope)
@@ -116,17 +115,15 @@ case class NaiveEnvelopAggr(geom: Expression)
     //      dslMax(maxX, input_maxX),
     //      dslMax(maxY, input_maxY),
     //    )
-    val fuck = -minX
-    val newMinX = dslMin(minX, input_minX)
-    Seq(newMinX, minY, maxX, maxY)
+    //    val fuck = -minX
+    //    val newMinX = dslMin(minX, input_minX)
+    Seq(minX, minY, maxX, maxY)
   }
 
   override val evaluateExpression: Expression = {
     minX
-//    ST_PolygonFromEnvelope(envelop)
+    //    ST_PolygonFromEnvelope(envelop)
   }
 
   override def prettyName: String = "naive_envelop_aggr"
 }
-
-
