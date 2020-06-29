@@ -52,7 +52,8 @@ object UdfRegistrator {
     spark.sessionState.functionRegistry.createOrReplaceTempFunction("ST_Scale", ST_Scale)
     spark.sessionState.functionRegistry.createOrReplaceTempFunction("ST_Affine", ST_Affine)
     // Register aggregate function UDFs
-    spark.udf.register("ST_Union_Aggr", new ST_Union_Aggr)
+//    spark.udf.register("ST_Union_Aggr", new ST_Union_Aggr)
     spark.sessionState.functionRegistry.createOrReplaceTempFunction("ST_Envelope_Aggr", seqs => EnvelopeAggr(seqs(0)))
+    spark.sessionState.functionRegistry.createOrReplaceTempFunction("ST_Union_Aggr", seqs => UnionAggr(seqs(0)))
   }
 }

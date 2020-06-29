@@ -6,6 +6,7 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.DeclarativeAggregate
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.types._
+import org.apache.zookeeper.KeeperException.UnimplementedException
 
 
 case class GeometryEnvelope(expression: Expression) extends ST_UnaryOp {
@@ -75,8 +76,8 @@ case class dslMax(leftExpr: Expression, rightExpr: Expression) extends BinaryExp
   }
 }
 
-object EnvelopeAggr {
-  val emptyResponse = ST_GeomFromText(Seq(Literal("Polygon Empty")))
+object AggrConstants {
+  val emptyExpr: Expression = ST_GeomFromText(Seq(Literal("Polygon Empty")))
 }
 
 case class EnvelopeAggr(geom: Expression)
@@ -133,10 +134,47 @@ case class EnvelopeAggr(geom: Expression)
   override val evaluateExpression: Expression = {
     val condition = envelope(0) <= envelope(2)
     val data = ST_PolygonFromEnvelope(envelope)
-    If(condition, data, EnvelopeAggr.emptyResponse)
+    If(condition, data, AggrConstants.emptyExpr)
   }
 
   override def prettyName: String = "ST_Envelope_Aggr"
 }
 
 
+case class UnionAggr(geom: Expression)
+  extends DeclarativeAggregate with ImplicitCastInputTypes {
+  override def children: Seq[Expression] = Seq(geom)
+
+  override def nullable: Boolean = false
+
+  override def dataType: DataType = GeometryType
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(GeometryType)
+
+  protected val polygonsUnion: AttributeReference = AttributeReference("polygons", GeometryType, nullable = false)()
+
+  override val aggBufferAttributes: Seq[AttributeReference] = Seq(polygonsUnion)
+
+  override val initialValues: Seq[Expression] = {
+    Seq(AggrConstants.emptyExpr)
+  }
+
+  override lazy val updateExpressions: Seq[Expression] = updateExpressionDef
+  //  def dslMin(e1: Expression, e2: Expression): Expression = If(e1 < e2, e1, e2)
+  //  def dslMax(e1: Expression, e2: Expression): Expression = If(e1 > e2, e1, e2)
+
+  override val mergeExpressions: Seq[Expression] = {
+    val leftExpr: Expression = polygonsUnion.left
+    val rightExpr: Expression = polygonsUnion.right
+    val result: Expression = ST_Union(Seq(leftExpr, rightExpr))
+    Seq(result)
+  }
+
+  protected def updateExpressionDef: Seq[Expression] = {
+    Seq(ST_Union(Seq(polygonsUnion, geom)))
+  }
+
+  override val evaluateExpression: Expression = polygonsUnion
+
+  override def prettyName: String = "ST_Union_Aggr"
+}
