@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.catalyst.util.ArrayData._
 import org.apache.spark.sql.types._
+import org.apache.zookeeper.KeeperException.UnimplementedException
 import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import org.locationtech.jts.geom.{Geometry, GeometryCollection, GeometryFactory, MultiPoint, MultiPolygon, Polygon}
@@ -682,6 +683,8 @@ case class ST_Union(inputsExpr: Seq[Expression]) extends ST_BinaryOp {
   override def leftExpr: Expression = inputsExpr.head
 
   override def rightExpr: Expression = inputsExpr(1)
+
+  override def eval(input: InternalRow): Any = throw new UnimplementedException
 
   override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = codeGenJob(ctx, ev, (left, right) => s"$left.union($right)")
 

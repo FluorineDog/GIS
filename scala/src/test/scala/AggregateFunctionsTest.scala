@@ -21,6 +21,24 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
 class AggregateFunctionsTest extends AdapterTest {
+  test("ST_Union_Aggr-simple") {
+    val data = Seq(
+      Row(GeometryUDT.FromWkt("POINT (-1 -1)")),
+      Row(GeometryUDT.FromWkt("POINT (5 5)")),
+      Row(GeometryUDT.FromWkt("POINT (1 1)")),
+    )
+
+    val schema = StructType(Array(StructField("geo", new GeometryUDT, nullable = true)))
+    val df = spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+    df.createOrReplaceTempView("ST_Union_Aggr_data")
+    df.show(false)
+    val rst = spark.sql("select ST_Union_Aggr(geo) from ST_Union_Aggr_data")
+
+    rst.queryExecution.debug.codegen()
+
+    rst.show(false)
+  }
+
   test("ST_Envelope_Aggr_codegen") {
     assert(true)
     val data = Seq(
@@ -37,25 +55,11 @@ class AggregateFunctionsTest extends AdapterTest {
 
     df.show(false)
     val rst = spark.sql("select ST_Envelope_Aggr(geo) from raw_data")
-    //    rst.queryExecution.debug.codegen()
+    rst.queryExecution.debug.codegen()
     rst.show(false)
     val collect = rst.collect()
     assert(collect(0).getAs[GeometryUDT](0).toString == "POLYGON ((0 0, 0 20, 20 20, 20 0, 0 0))")
   }
-  test("ST_Union_Aggr-simple") {
-    val data = Seq(
-      Row(GeometryUDT.FromWkt("POINT (-1 -1)")),
-      Row(GeometryUDT.FromWkt("POINT (5 5)")),
-      Row(GeometryUDT.FromWkt("POINT (1 1)")),
-    )
-
-    val schema = StructType(Array(StructField("geo", new GeometryUDT, nullable = true)))
-    val df = spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
-    df.createOrReplaceTempView("ST_Union_Aggr_data")
-    val rst = spark.sql("select ST_Union_Aggr(geo) from ST_Union_Aggr_data")
-    rst.show(false)
-  }
-
   test("ST_Union_Aggr") {
     val data = Seq(
       Row(GeometryUDT.FromWkt("POLYGON EMPTY")),
