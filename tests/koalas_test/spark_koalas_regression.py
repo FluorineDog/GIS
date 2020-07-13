@@ -14,15 +14,18 @@
 
 import os
 from shapely import wkt
+from arctern_spark.geoseries import GeoSeries
+
+ARCTERN_INPUT_DIR = './data/'
+ARCTERN_RESULT_DIR = '/tmp/'
+EXPECTED_RESULT_DIR = './expected/'
 
 GEO_TYPES = ['POLYGON', 'POINT', 'LINESTRING', 'LINEARRING']
 GEO_COLLECTION_TYPES = [
     'MULTIPOLYGON', 'MULTIPOINT', 'MULTILINESTRING', 'GEOMETRYCOLLECTION', 'MULTILINEARRING'
 ]
-CURVE_TYPES = ['CIRCULARSTRING', 'MULTICURVE', 'COMPOUNDCURVE']
-SURFACE_TYPES = ['CURVEPOLYGON', 'MULTISURFACE', 'SURFACE']
-GEO_LENGTH_TYPES = ['POINT', 'LINESTRING', 'MULTIPOINT', 'MULTILINESTRING']
-GEO_AREA_TYPES = ['POLYGON', 'MULTIPOLYGON']
+
+EPOCH = 1e-8
 
 unary_func_property_dict = {
     # 'length':['length.csv', 'length.out','st_length.out'],  # issue 828
@@ -35,7 +38,7 @@ unary_func_property_dict = {
     'exterior': ['exterior.csv', 'exterior.out', 'st_exterior.out'],  # empty error!
     'boundary': ['boundary.csv', 'boundary.out', 'st_boundary.out'],  # e
     'is_empty': ['is_empty.csv', 'is_empty.out', 'st_is_empty.out'],  # e
-    'is_simple':['is_simple.csv','is_simple.out','st_is_simple.out'], # e
+    'is_simple': ['is_simple.csv', 'is_simple.out', 'st_is_simple.out'],  # e
 }
 
 unary_func_dict = {
@@ -45,12 +48,12 @@ unary_func_dict = {
     'unary_union': ['unary_union.csv', 'unary_union.out', 'st_unary_union.out', None],
     'as_geojson': ['as_geojson.csv', 'as_geojson.out', 'st_as_geojson.out', None],
     'precision_reduce': ['precision_reduce.csv', 'precision_reduce.out', 'st_precision_reduce.out', [1]],
-    'translate':['translate.csv','translate.out','st_translate.out',[2,2]],
-    # 'affine':['affine.csv','affine.out','st_affine.out',[1,2,3,4,5,6]],
+    'translate': ['translate.csv', 'translate.out', 'st_translate.out', [2, 2]],
+    'affine': ['affine.csv', 'affine.out', 'st_affine.out', [1, 1, 1, 1, 1, 1]],
     # 'scale':['scale.csv','scale.out','st_scale.out',[1,2,(0 0)]],
     # 'rotate':['rotate.csv','rotate.out','st_rotate.out',[180,(0,0)]],
     # 'to_crs':['to_crs.csv','to_crs.out','st_to_crs.out',['\'EPSG:4326\'']],
-    # 'curve_to_line':['curve_to_line.csv','curve_to_line.out','st_curve_to_line.out',None],
+    'curve_to_line': ['curve_to_line.csv', 'curve_to_line.out', 'st_curve_to_line.out', None]
 }
 
 binary_func_dict = {
@@ -59,6 +62,7 @@ binary_func_dict = {
     'distance': ['distance.csv', 'distance.out', 'st_distance.out'],
     'contains': ['contains.csv', 'contains.out', 'st_contains.out'],
     'crosses': ['crosses.csv', 'crosses.out', 'st_crosses.out'],
+    'touches': ['touches.csv', 'touches.out', 'st_touches.out'],
     'intersects': ['intersects.csv', 'intersects.out', 'st_intersects.out'],
     'intersection': ['intersection.csv', 'intersection.out', 'st_intersection.out'],
     'symmetric_difference':['symmetric_difference.csv','symmetric_difference.out','st_symmetric_difference.out'],
@@ -113,176 +117,6 @@ def is_geometrycollection(geo):
     return False
 
 
-def is_geometrytype(geo):
-    """Determine whether a given string is to describe a geometry type, like 'point' for example."""
-    geo = geo.strip().upper()
-
-    arr = []
-    arr.extend(GEO_TYPES)
-    arr.extend(GEO_COLLECTION_TYPES)
-    arr.extend(CURVE_TYPES)
-    arr.extend(SURFACE_TYPES)
-
-    for a_geo_type_in_all_geo_types_list in arr:
-        if a_geo_type_in_all_geo_types_list in geo:
-            return True
-
-        continue
-
-    return False
-
-
-def is_curve(geo):
-    """Determine whether a geometry is curve types, like circularstring/MULTICURVE/COMPOUNDCURVE."""
-    geo = geo.strip().upper()
-
-    for a_geo_type_in_curve_geo_types_list in CURVE_TYPES:
-        if geo.startswith(a_geo_type_in_curve_geo_types_list):
-            return True
-
-        continue
-
-    return False
-
-
-def is_surface(geo):
-    """Determine whether a geometry is curve types, like CURVEPOLYGON/MULTISURFACE/SURFACE."""
-    geo = geo.strip().upper()
-
-    for a_geo_type_in_surface_geo_types_list in SURFACE_TYPES:
-        if geo.startswith(a_geo_type_in_surface_geo_types_list):
-            return True
-        # else:
-        continue
-
-    return False
-
-
-UNIT = 1e-4
-EPOCH = 1e-8
-EPOCH_CURVE = 1e-2
-EPOCH_SURFACE = 1e-2
-EPOCH_CURVE_RELATIVE = 1e-2
-EPOCH_SURFACE_RELATIVE = 1e-2
-
-
-# def compare_length(geometry_x, geometry_y):
-#     """Compare length of 2 geometry types."""
-#     arct = CreateGeometryFromWkt(geometry_x)
-#     pgis = CreateGeometryFromWkt(geometry_y)
-#
-#     intersection_length = Geometry.Length(Geometry.Intersection(arct, pgis))
-#     arct_length = Geometry.Length(arct)
-#     pgis_length = Geometry.Length(pgis)
-#
-#     # print('arctern length: %s, postgis length: %s, intersection length: %s' %
-#     #       (str(arct_length), str(pgis_length), str(intersection_length)))
-#     # result = compare_float(intersection_length, arct_length, pgis_length, EPOCH_CURVE)
-#     result = compare3float_relative(pgis_length, arct_length,
-#                                     intersection_length, EPOCH_CURVE_RELATIVE)
-#     return result
-
-
-def compare_area(geometry_x, geometry_y):
-    """Compare area of 2 geometry types."""
-    arct = CreateGeometryFromWkt(geometry_x)
-    pgis = CreateGeometryFromWkt(geometry_y)
-
-    intersection_area = Geometry.Area(Geometry.Intersection(arct, pgis))
-    arct_area = Geometry.Area(arct)
-    pgis_area = Geometry.Area(pgis)
-
-    # print('arctern area: %s, postgis area: %s, intersection area: %s' %
-    #       (str(arct_area), str(pgis_area), str(intersection_area)))
-    # result = compare_float(intersection_area, arct_area, pgis_area, EPOCH_SURFACE)
-    result = compare3float_relative(pgis_area, arct_area, intersection_area,
-                                    EPOCH_SURFACE_RELATIVE)
-    return result
-
-
-def compare_geometry(config, geometry_x, geometry_y):
-    """Compare whether 2 geometries is 'equal'."""
-    if geometry_x.upper().endswith('EMPTY') and geometry_y.upper().endswith(
-            'EMPTY'):
-        return True
-    arct = wkt.loads(geometry_x)
-    pgis = wkt.loads(geometry_y)
-    return arct.equals_exact(pgis, EPOCH)
-
-
-def compare_geometrycollection(config, geometry_x, geometry_y):
-    """Compare whether 2 geometrycollections is 'equal'."""
-
-    arct = wkt.loads(geometry_x)
-    pgis = wkt.loads(geometry_y)
-    return arct.equals_exact(pgis, 1e-10)
-
-
-def compare_floats(config, geometry_x, geometry_y):
-    """Compare whether 2 float values is 'equal'."""
-    value_x = float(geometry_x)
-    value_y = float(geometry_y)
-    if value_x == 0:
-        return value_y == 0
-
-    precision_error = EPOCH
-
-    return abs((value_x - value_y)) <= precision_error
-
-
-def compare_float(geometry_x, geometry_y, geometry_z, precision_error):
-    """Compare whether 2 geometries and their intersection is 'equal'."""
-
-    value_x = float(geometry_x)
-    value_y = float(geometry_y)
-    value_z = float(geometry_z)
-    return abs((value_x - value_y)) <= precision_error and \
-           abs((value_x - value_z)) <= precision_error and \
-           abs((value_y - value_z)) <= precision_error
-
-
-def compare2float_relative(x_base, y_check, relative_error):
-    """Compare whether 2 geometries and their intersection is 'equal', measure with relative."""
-    value_x = float(x_base)
-    value_y = float(y_check)
-    return ((abs(value_x - value_y)) / (abs(value_x))) <= relative_error
-
-
-def compare3float_relative(x_base, y_check, z_intersection, relative_error):
-    """Compare whether 2 geometries and their intersection is 'equal', measure with relative."""
-    return compare2float_relative(x_base, y_check, relative_error) and \
-           compare2float_relative(x_base, z_intersection, relative_error) and \
-           compare2float_relative(y_check, z_intersection, relative_error)
-
-
-def compare_curve(geometry_x, geometry_y):
-    """Compare whether 2 curve geometries is 'equal'."""
-    arct = CreateGeometryFromWkt(geometry_x)
-    pgis = CreateGeometryFromWkt(geometry_y)
-
-    intersection_length = Geometry.Length(Geometry.Intersection(arct, pgis))
-    arct_length = Geometry.Length(arct)
-    pgis_length = Geometry.Length(pgis)
-    # result = compare_float(intersection_length, arct_length, pgis_length,EPOCH_CURVE)
-    result = compare3float_relative(pgis_length, arct_length,
-                                    intersection_length, EPOCH_CURVE_RELATIVE)
-    return result
-
-
-def compare_surface(geometry_x, geometry_y):
-    """Compare whether 2 surface geometries is 'equal'."""
-    arct = CreateGeometryFromWkt(geometry_x)
-    pgis = CreateGeometryFromWkt(geometry_y)
-
-    intersection_area = Geometry.Area(Geometry.Intersection(arct, pgis))
-    arct_area = Geometry.Area(arct)
-    pgis_area = Geometry.Area(pgis)
-
-    result = compare3float_relative(pgis_area, arct_area, intersection_area,
-                                    EPOCH_SURFACE_RELATIVE)
-    return result
-
-
 def is_float(str):
     try:
         num = float(str)
@@ -304,28 +138,59 @@ def convert_str(strr):
     return strr
 
 
-# pylint: disable=too-many-return-statements
-# pylint: disable=too-many-branches
+def compare_geometry(config, geometry_x, geometry_y):
+    """Compare whether 2 geometries is 'equal'."""
+    if geometry_x.upper().endswith('EMPTY') and geometry_y.upper().endswith(
+            'EMPTY'):
+        return True
+    arct = wkt.loads(geometry_x)
+    pgis = wkt.loads(geometry_y)
+    return arct.equals_exact(pgis, EPOCH) or arct.equals(pgis)
+
+
+def compare_geometrycollection(config, geometry_x, geometry_y):
+    """Compare whether 2 geometrycollections is 'equal'."""
+    arct = wkt.loads(geometry_x)
+    pgis = wkt.loads(geometry_y)
+    return arct.equals_exact(pgis, 1e-10) or arct.equals(pgis)
+
+
+def compare_floats(config, geometry_x, geometry_y):
+    """Compare whether 2 float values is 'equal'."""
+    value_x = float(geometry_x)
+    value_y = float(geometry_y)
+    if value_x == 0:
+        return value_y == 0
+
+    precision_error = EPOCH
+
+    return abs((value_x - value_y)) <= precision_error
+
+
 def compare_one(config, result, expect):
     """Compare 1 line of arctern result and expected."""
     value_x = result[1]
     value_y = expect[1]
-
     newvalue_x = convert_str(value_x)
     newvalue_y = convert_str(value_y)
 
     try:
+        if newvalue_x == newvalue_y:
+            return True
+
         if isinstance(newvalue_x, bool):
             one_result_flag = (newvalue_x == newvalue_y)
             if not one_result_flag:
                 print(result[0], newvalue_x, expect[0], newvalue_y)
             return one_result_flag
 
+        if isinstance(newvalue_x, (int, float)):
+            return compare_floats(config, newvalue_x, newvalue_y)
+
         if isinstance(newvalue_x, str):
             newvalue_x = newvalue_x.strip().upper()
             newvalue_y = newvalue_y.strip().upper()
 
-            # check order : empty -> GEO_TYPES -> geocollection_types -> curve -> surface
             if (is_empty(newvalue_x) and is_empty(newvalue_y)):
                 return True
 
@@ -343,24 +208,11 @@ def compare_one(config, result, expect):
                 if not one_result_flag:
                     print(result[0], newvalue_x, expect[0], newvalue_y)
                 return one_result_flag
-
-            if is_geometrytype(newvalue_x) and is_geometrytype(newvalue_y):
-                one_result_flag = (newvalue_x == newvalue_y)
-                if not one_result_flag:
-                    print(result[0], newvalue_x, expect[0], newvalue_y)
-                return one_result_flag
-
             return False
 
-        if isinstance(newvalue_x, (int, float)):
-            return compare_floats(config, newvalue_x, newvalue_y)
-            # if not one_result_flag:
-            #     print(result[0], newvalue_x, expect[0], newvalue_y)
-            # return one_result_flag
     except ValueError as ex:
         print(repr(ex))
-        one_result_flag = False
-    return one_result_flag
+        return False
 
 
 def compare_results(config, arctern_results, postgis_results):
@@ -377,8 +229,7 @@ def compare_results(config, arctern_results, postgis_results):
             if value.strip() != '':
                 pgis_arr.append((num, value.strip()))
 
-    case_result_flag = True
-
+    flag = True
     if len(arct_arr) != len(pgis_arr):
         print('arctern koalas results count is not consist with expected data.')
         return False
@@ -387,14 +238,11 @@ def compare_results(config, arctern_results, postgis_results):
             arct_arr, pgis_arr):
         res = compare_one(config, arctern_res_item,
                           postgis_res_item)
-        case_result_flag = case_result_flag and res
-
-    return case_result_flag
+        flag = flag and res
+    return flag
 
 
 def compare_all():
-    ARCTERN_RESULT_DIR = './output/'
-    EXPECTED_RESULT_DIR = './expected/'
     results, expects = collect_diff_file_list()
     flag = True
 
@@ -424,52 +272,6 @@ def compare_all():
 
         flag = flag and res
     return flag
-
-
-def update_quote(file_path):
-    """Update quotes of the original spark results."""
-    with open(file_path, 'r') as the_result_file_from_spark:
-        content = the_result_file_from_spark.read()
-        update = content.replace(r'"', '')
-    with open(file_path, 'w') as the_result_file_from_spark:
-        the_result_file_from_spark.write(update)
-
-
-def update_bool(file_path):
-    """Update bool values of the original spark results file."""
-    with open(
-            file_path, 'r'
-    ) as the_result_file_from_spark_for_read_and_abbr_not_allowed_by_pylint:
-        content = the_result_file_from_spark_for_read_and_abbr_not_allowed_by_pylint.read(
-        )
-        update = content.replace('true', 'True').replace('false', 'False')
-    with open(
-            file_path,
-            'w') as the_result_file_from_spark_for_write_and_abbr_not_allowed:
-        the_result_file_from_spark_for_write_and_abbr_not_allowed.write(update)
-
-
-def update_result():
-    """Update the original spark results."""
-    results, expects = collect_diff_file_list()
-    ARCTERN_RESULT_DIR = './output/'
-    EXPECTED_RESULT_DIR = './expected/'
-    for f in results:
-        arctern_file = os.path.join(ARCTERN_RESULT_DIR, f)
-
-        update_quote(arctern_file)
-        update_bool(arctern_file)
-
-
-#
-# import from compare.py ,These codes need to be refactored later.
-import pandas as pd
-# from osgeo import ogr
-from arctern_spark.geoseries import GeoSeries
-from databricks.koalas import Series
-
-input_csv_base_dir = './data/'
-output_csv_base_dir = './output/'
 
 
 def read_csv2arr(input_csv_path):
@@ -503,14 +305,17 @@ def write_arr2csv(output_csv_path, output_arr):
 
 
 def test_binary_func(func_name, input_csv, output_csv):
-    input_csv_path = input_csv_base_dir + input_csv
-    output_csv_path = output_csv_base_dir + output_csv
+    input_csv_path = ARCTERN_INPUT_DIR + input_csv
+    output_csv_path = ARCTERN_RESULT_DIR + output_csv
     col1, col2 = read_csv2arr(input_csv_path)
     assert len(col1) == len(col2)
     geo_s1 = GeoSeries(col1)
     geo_s2 = GeoSeries(col2)
+    if func_name == 'distance_sphere':
+        geo_s1.set_crs('EPSG:4326')
+        geo_s2.set_crs('EPSG:4326')
     test_codes = 'geo_s1.' + func_name + '(geo_s2)'
-    if func_name == 'intersection':
+    if func_name in ['intersection', 'symmetric_difference']:
         test_codes = test_codes + '.to_wkt()'
     elif func_name == 'equals':
         test_codes = 'geo_s1.geom_equals(geo_s2)'
@@ -520,8 +325,8 @@ def test_binary_func(func_name, input_csv, output_csv):
 
 # This is only for debug
 def test_binary_func1(func_name, input_csv, output_csv):
-    input_csv_path = input_csv_base_dir + input_csv
-    output_csv_path = output_csv_base_dir + output_csv
+    input_csv_path = ARCTERN_INPUT_DIR + input_csv
+    output_csv_path = ARCTERN_RESULT_DIR + output_csv
     col1, col2 = read_csv2arr(input_csv_path)
     assert len(col1) == len(col2)
     for i in range(0, len(col1)):
@@ -543,8 +348,8 @@ def test_unary_property_func(func_name, input_csv, output_csv):
         'convex_hull',
         'exterior'
     ]
-    input_csv_path = input_csv_base_dir + input_csv
-    output_csv_path = output_csv_base_dir + output_csv
+    input_csv_path = ARCTERN_INPUT_DIR + input_csv
+    output_csv_path = ARCTERN_RESULT_DIR + output_csv
     col1, col2 = read_csv2arr(input_csv_path)
     assert len(col2) == 0
     geo_s1 = GeoSeries(col1)
@@ -556,11 +361,13 @@ def test_unary_property_func(func_name, input_csv, output_csv):
 
 
 def test_unary_func(func_name, input_csv, output_csv, params):
-    input_csv_path = input_csv_base_dir + input_csv
-    output_csv_path = output_csv_base_dir + output_csv
+    input_csv_path = ARCTERN_INPUT_DIR + input_csv
+    output_csv_path = ARCTERN_RESULT_DIR + output_csv
     col1, col2 = read_csv2arr(input_csv_path)
     assert len(col2) == 0
     geo_s1 = GeoSeries(col1)
+    if func_name == 'to_crs':
+        geo_s1.set_crs('EPSG:3857')
     comma_flag = False
     param_code = ''
     if params == None:
@@ -589,7 +396,7 @@ if __name__ == "__main__":
     # test unary_func
     for key, values in unary_func_dict.items():
         test_unary_func(key, values[0], values[1], values[3])
-    # update_result()
+
     test_status = compare_all()
     exit(0 if test_status else -1)
     # print(test_status)
