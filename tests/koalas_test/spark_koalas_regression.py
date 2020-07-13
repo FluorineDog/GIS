@@ -61,15 +61,14 @@ binary_func_dict = {
     'crosses': ['crosses.csv', 'crosses.out', 'st_crosses.out'],
     'intersects': ['intersects.csv', 'intersects.out', 'st_intersects.out'],
     'intersection': ['intersection.csv', 'intersection.out', 'st_intersection.out'],
-    # 'symmetric_difference':['symmetric_difference.csv','symmetric_difference.out','st_symmetric_difference.out'],
-    # 'hausdorff_distance':['hausdorff_distance.csv','hausdorff_distance.out','st_hausdorff_distance.out'],
-    # 'distance_sphere':['distance_sphere.csv','distance_sphere.out','st_distance_sphere.out'] # e
-    #
-    # 'overlaps':['overlaps.csv','overlaps.out'],  # error
-    # 'touches':['touches.csv','touches.out'],  # error
-    # 'union':['union.csv','union.out'],  # error
-    # 'difference':['difference.csv','difference.out'],
-    # 'disjoint':['disjoint.csv','disjoint.out'],
+    'symmetric_difference':['symmetric_difference.csv','symmetric_difference.out','st_symmetric_difference.out'],
+    'hausdorff_distance':['hausdorff_distance.csv','hausdorff_distance.out','st_hausdorff_distance.out'],
+    'distance_sphere':['distance_sphere.csv','distance_sphere.out','st_distance_sphere.out'], # e
+    'overlaps':['overlaps.csv','overlaps.out', 'st_overlaps.out'],  # error
+    'touches':['touches.csv','touches.out', "st_touches.out"],  # error
+    'union':['union.csv','union.out', "st_union.out"],  # error
+    'difference':['difference.csv','difference.out', "st_difference.out"],
+    'disjoint':['disjoint.csv','disjoint.out', "st_disjoint.out"],
 }
 
 
@@ -513,7 +512,7 @@ def test_binary_func(func_name, input_csv, output_csv):
     test_codes = 'geo_s1.' + func_name + '(geo_s2)'
     if func_name == 'intersection':
         test_codes = test_codes + '.to_wkt()'
-    if func_name == 'equals':
+    elif func_name == 'equals':
         test_codes = 'geo_s1.geom_equals(geo_s2)'
     res = eval(test_codes).sort_index()
     write_arr2csv(output_csv_path, res.tolist())
@@ -592,4 +591,5 @@ if __name__ == "__main__":
         test_unary_func(key, values[0], values[1], values[3])
     # update_result()
     test_status = compare_all()
+    exit(0 if test_status else -1)
     # print(test_status)
